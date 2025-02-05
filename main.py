@@ -84,7 +84,7 @@ business_queries = [
 '''
 EITHER execute queries individually like this commented out section
 '''
-for query, query_id in seed_queries:
+for query, query_id in scientific_queries:
     generator.add_seed_query(query, query_id)
 
 visualizer = GraphVisualizer(graph=generator.graph_builder.graph, domain_name="general")

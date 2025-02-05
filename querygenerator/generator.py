@@ -93,16 +93,31 @@ Make sure the question is natural and the answer is comprehensive."""
     def _parse_response(self, response: str) -> Tuple[str, str]:
         """
         Parse generated response to extract question and answer
+        Returns tuple of (question, answer)
+        If answer is missing, returns a default message
         """
         parts = response.split('\n')
         question = ""
         answer = ""
         
+        # Look for question and answer in response
         for part in parts:
-            if part.startswith("Question: "):
+            if part.strip().startswith("Question: "):
                 question = part.replace("Question: ", "").strip()
-            elif part.startswith("Answer: "):
+            elif part.strip().startswith("Answer: "):
                 answer = part.replace("Answer: ", "").strip()
-                
+        
+        # Check if we have both parts
+        if not question:
+            question = "ERROR: No question generated"
+        if not answer:
+            answer = "Please try regenerating this response as no answer was provided."
+        
+        # Optional: Log missing parts for debugging
+        if not answer or not question:
+            print(f"Warning: Incomplete response received:")
+            print(f"Original response: {response}")
+            print(f"Parsed question: {question}")
+            print(f"Parsed answer: {answer}")
+        
         return question, answer
-
