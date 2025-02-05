@@ -1,84 +1,102 @@
 # Golden Dataset Generator
 
-This tool helps generate golden datasets for question-answering tasks by leveraging Large Language Models (LLMs) and knowledge graph construction.  It starts with a set of seed questions, expands them using an LLM, and builds a knowledge graph to visualize the relationships between concepts.
+This tool facilitates the creation of golden datasets for question-answering tasks by combining the power of Large Language Models (LLMs) and knowledge graph construction. The process begins with a set of seed questions, which are then expanded upon using an LLM.  A knowledge graph is built to visualize the relationships between concepts.
 
 ## Installation
+
+To get started, install the necessary dependencies:
 
 ```bash
 pip install spacy networkx pandas langchain-google-vertexai matplotlib
 python -m spacy download en_core_web_sm
 ```
 
-## Execute
-### Steps
-1. Come up with N number of seed queries and store them like this.
+## Usage
 
-```
-# Business Domain Queries
-business_queries = [
-    ("What are the key components of a SWOT analysis?", "bus1"),
-    ("How does supply chain optimization work?", "bus2"),
-    ("Explain the concept of market segmentation.", "bus3"),
-    ("What are the principles of agile project management?", "bus4")
-]
-```
-The first element in the tuple is the query, the second element is the id.
+### Basic Execution
 
-2. If using an single theme of seed queries loop through them and add them to the generator. Then use the generate to generate new queries passing the number of new queries into the `generate_dataset` method. 
+1.  **Define Seed Queries:** Create a list of seed queries, each represented as a tuple containing the question and a unique identifier.
 
-```
-for query, query_id in seed_queries:
-    generator.add_seed_query(query, query_id)
+    ```python
+    # Example Seed Queries
+    seed_queries = [
+        ("What are the key components of a SWOT analysis?", "bus1"),
+        ("How does supply chain optimization work?", "bus2"),
+        ("Explain the concept of market segmentation.", "bus3"),
+        ("What are the principles of agile project management?", "bus4")
+    ]
+    ```
 
-visualizer = GraphVisualizer(generator.graph_builder.graph)
-visualizer.visualize()
+    *   The first element of the tuple is the query string.
+    *   The second element is a unique identifier for the query.
 
-# Generate new dataset
-dataset = generator.generate_dataset(num_queries=5)
-print(dataset)
+2.  **Add Seed Queries and Generate Dataset:** Iterate through the seed queries, add them to the generator, and then generate a new dataset.  The `generate_dataset` method takes the desired number of new queries as input.
 
-```
+    ```python
+    from your_module import Generator, GraphVisualizer # Replace your_module
 
-The dataset object is retrieved as a pandas df and can be exported using the pandas [to_csv](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_csv.html) method. 
+    generator = Generator() # Initialize your generator class
 
-## Advanced Execution
-In the `ds_generator` there is a function to generate domain datasets, if you choose to use this, create seed datasets as before, example 
+    for query, query_id in seed_queries:
+        generator.add_seed_query(query, query_id)
 
-```
-# Scientific Domain Queries
-scientific_queries = [
-    ("What is the role of mitochondria in cellular respiration?", "sci1"),
-    ("How does quantum entanglement work in physics?", "sci2"),
-    ("Explain the process of DNA replication.", "sci3"),
-    ("What are the laws of thermodynamics?", "sci4")
-]
+    visualizer = GraphVisualizer(generator.graph_builder.graph)
+    visualizer.visualize()
 
-# Technology Domain Queries
-tech_queries = [
-    ("How do microprocessors handle parallel processing?", "tech1"),
-    ("What are the principles of cloud computing architecture?", "tech2"),
-    ("Explain how blockchain maintains data integrity.", "tech3"),
-    ("What is the difference between HTTP and HTTPS?", "tech4")
-]
+    # Generate new dataset
+    dataset = generator.generate_dataset(num_queries=5)
+    print(dataset)
+    ```
 
-# Business Domain Queries
-business_queries = [
-    ("What are the key components of a SWOT analysis?", "bus1"),
-    ("How does supply chain optimization work?", "bus2"),
-    ("Explain the concept of market segmentation.", "bus3"),
-    ("What are the principles of agile project management?", "bus4")
-]
-```
+    The `dataset` object is returned as a pandas DataFrame.  You can export it to a CSV file using the pandas [`to_csv`](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_csv.html) method.
 
-2. Execute the domain-specific dataset generation like this scientific_dataset, 
+## Advanced Usage: Domain-Specific Dataset Generation
 
-```
-scientific_generator = generate_domain_dataset(
+The `ds_generator` module provides a function for generating domain-specific datasets. To use this feature, prepare seed datasets for each domain you want to target.
 
-    generator=generator,
-    domain_queries=scientific_queries, 
-    domain_name="scientific", 
-    num_queries=5,
-)
-```
-This will generate a specific named dataset.
+1.  **Create Domain-Specific Seed Queries:**  Define seed query lists for each domain.
+
+    ```python
+    # Scientific Domain Queries
+    scientific_queries = [
+        ("What is the role of mitochondria in cellular respiration?", "sci1"),
+        ("How does quantum entanglement work in physics?", "sci2"),
+        ("Explain the process of DNA replication.", "sci3"),
+        ("What are the laws of thermodynamics?", "sci4")
+    ]
+
+    # Technology Domain Queries
+    tech_queries = [
+        ("How do microprocessors handle parallel processing?", "tech1"),
+        ("What are the principles of cloud computing architecture?", "tech2"),
+        ("Explain how blockchain maintains data integrity.", "tech3"),
+        ("What is the difference between HTTP and HTTPS?", "tech4")
+    ]
+
+    # Business Domain Queries
+    business_queries = [
+        ("What are the key components of a SWOT analysis?", "bus1"),
+        ("How does supply chain optimization work?", "bus2"),
+        ("Explain the concept of market segmentation.", "bus3"),
+        ("What are the principles of agile project management?", "bus4")
+    ]
+    ```
+
+2.  **Generate Domain Datasets:** Call the `generate_domain_dataset` function for each domain.
+
+    ```python
+    from your_module import generate_domain_dataset, Generator # Replace your_module
+
+    generator = Generator() # Initialize your generator class
+
+
+    scientific_dataset = generate_domain_dataset(
+        generator=generator,
+        domain_queries=scientific_queries,
+        domain_name="scientific",
+        num_queries=5,
+    )
+    ```
+
+    This will generate a dataset specific to the "scientific" domain, named "scientific_dataset".
+
