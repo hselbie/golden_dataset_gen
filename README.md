@@ -1,6 +1,18 @@
 # Golden Dataset Generator
 
-This tool facilitates the creation of golden datasets for question-answering tasks by combining the power of Large Language Models (LLMs) and knowledge graph construction. The process begins with a set of seed questions, which are then expanded upon using an LLM.  A knowledge graph is built to visualize the relationships between concepts.
+High-quality golden datasets are essential for objectively evaluating and improving Retrieval-Augmented Generation (RAG) and search systems.  However, creating these datasets is traditionally expensive and time-consuming. This tool tackles that challenge, empowering developers to build more accurate, robust, and trustworthy RAG/search applications by streamlining the generation process.
+
+**Why are Golden Datasets Important?** They provide:
+
+*   **Objective Truth:** A reliable benchmark for measuring accuracy and relevance.
+*   **Targeted Analysis:** Allows separate evaluation of retrieval and generation components.
+*   **Iterative Improvement:** Enables data-driven optimization and error correction.
+*   **Regression Prevention:** Detects performance degradation after changes.
+*   **Real-World Representation:** Mirrors real-world scenarios for relevant evaluation.
+
+**How This Tool Works:**
+
+This tool facilitates the creation of golden datasets for question-answering tasks by combining the power of Large Language Models (LLMs) and knowledge graph construction. Starting with seed questions, the tool uses an LLM to expand the dataset.  A knowledge graph is built to visualize the relationships between concepts, aiding in data quality and coverage analysis.
 
 Example knowledge graph can be seen [here](https://github.com/hselbie/golden_dataset_gen/blob/main/generated_datasets/general_.png).
 
