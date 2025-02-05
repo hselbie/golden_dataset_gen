@@ -101,4 +101,5 @@ class GraphVisualizer:
         
         plt.title('Knowledge Graph Visualization')
         plt.tight_layout()
+        plt.savefig('foo.png')
         plt.show()

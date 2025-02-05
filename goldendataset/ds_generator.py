@@ -2,6 +2,7 @@ from langchain_google_vertexai import ChatVertexAI
 from langchain_google_vertexai import VertexAIEmbeddings
 from querygenerator.generator import QueryAnalyzer, QueryGenerator
 from knowledgegraph.builder import KnowledgeGraphBuilder
+from knowledgegraph.builder import GraphVisualizer
 import random
 import vertexai
 import pandas as pd
@@ -68,9 +69,34 @@ class GoldenDatasetGenerator:
             })
 
             df = pd.DataFrame(dataset)
-            output_file = 'generated_dataset.csv'
-            df.to_csv(output_file, index=False)
-            print(f"\nDataset saved to {output_file}")
             
         return df
 
+def generate_domain_dataset(generator, domain_queries, domain_name, num_queries=5):
+    """
+    Generate domain-specific datasets using specialized seed queries
+    """
+    # Initialize domain-specific generator
+    domain_generator = generator    
+    
+    print(f"\nProcessing {domain_name} domain:")
+    
+    # Add domain-specific seed queries
+    for query, query_id in domain_queries:
+        print(f"Adding seed query: {query_id}")
+        domain_generator.add_seed_query(query, query_id)
+    
+    # Generate domain-specific dataset
+    dataset = domain_generator.generate_dataset(num_queries=num_queries)
+    
+    # Save domain-specific results
+    output_file = f'generated_datasets/{domain_name}_dataset.csv'
+    print(f"Saving dataset to {output_file}")
+    dataset.to_csv(output_file, index=False)
+    
+    # Visualize domain knowledge graph
+    print(f"\nGenerating knowledge graph for {domain_name} domain")
+    visualizer = GraphVisualizer(domain_generator.graph_builder.graph)
+    visualizer.visualize()
+    
+    return dataset, domain_generator
