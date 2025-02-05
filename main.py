@@ -60,36 +60,37 @@ business_queries = [
 ]
 
 # Generate datasets for each domain
-scientific_dataset, scientific_generator = generate_domain_dataset(
-    generator=generator,
-    domain_queries=scientific_queries, 
-    domain_name="scientific", 
-    num_queries=5,
-)
+# scientific_dataset, scientific_generator = generate_domain_dataset(
+#     generator=generator,
+#     domain_queries=scientific_queries, 
+#     domain_name="scientific", 
+#     num_queries=5,
+# )
 
-tech_dataset, tech_generator = generate_domain_dataset(
-    generator=generator,
-    domain_queries=tech_queries, 
-    domain_name="technology", 
-    num_queries=5
-)
+# tech_dataset, tech_generator = generate_domain_dataset(
+#     generator=generator,
+#     domain_queries=tech_queries, 
+#     domain_name="technology", 
+#     num_queries=5
+# )
 
-business_dataset, business_generator = generate_domain_dataset(
-    generator=generator,
-    domain_queries=business_queries,
-    domain_name="business", 
-    num_queries=5
-)
+# business_dataset, business_generator = generate_domain_dataset(
+#     generator=generator,
+#     domain_queries=business_queries,
+#     domain_name="business", 
+#     num_queries=5
+# )
 
 '''
 EITHER execute queries individually like this commented out section
 '''
-# for query, query_id in seed_queries:
-#     generator.add_seed_query(query, query_id)
+for query, query_id in seed_queries:
+    generator.add_seed_query(query, query_id)
 
-# visualizer = GraphVisualizer(generator.graph_builder.graph)
-# visualizer.visualize()
+visualizer = GraphVisualizer(graph=generator.graph_builder.graph, domain_name="general")
+visualizer.visualize()
 
-# # Generate new dataset
-# dataset = generator.generate_dataset(num_queries=5)
-# print(dataset)
+# Generate new dataset
+dataset = generator.generate_dataset(num_queries=5)
+dataset.to_csv('generated_datasets/general_dataset.csv', index=False)
+print(dataset)
