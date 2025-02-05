@@ -50,8 +50,9 @@ class KnowledgeGraphBuilder:
         return related_pairs
 
 class GraphVisualizer:
-    def __init__(self, graph: nx.Graph):
+    def __init__(self, graph: nx.Graph, domain_name: str = None):
         self.graph = graph
+        self.domain_name = domain_name
         
     def visualize(self, figsize=(15, 10)):
         """
@@ -101,5 +102,5 @@ class GraphVisualizer:
         
         plt.title('Knowledge Graph Visualization')
         plt.tight_layout()
-        plt.savefig('foo.png')
+        plt.savefig(f'generated_datasets/{self.domain_name}_.png')
         plt.show()

@@ -96,7 +96,7 @@ def generate_domain_dataset(generator, domain_queries, domain_name, num_queries=
     
     # Visualize domain knowledge graph
     print(f"\nGenerating knowledge graph for {domain_name} domain")
-    visualizer = GraphVisualizer(domain_generator.graph_builder.graph)
+    visualizer = GraphVisualizer(graph=domain_generator.graph_builder.graph,domain_name=domain_name)
     visualizer.visualize()
     
     return dataset, domain_generator
