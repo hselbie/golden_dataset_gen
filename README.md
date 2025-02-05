@@ -2,6 +2,8 @@
 
 This tool facilitates the creation of golden datasets for question-answering tasks by combining the power of Large Language Models (LLMs) and knowledge graph construction. The process begins with a set of seed questions, which are then expanded upon using an LLM.  A knowledge graph is built to visualize the relationships between concepts.
 
+Example knowledge graph can be seen [here](https://github.com/hselbie/golden_dataset_gen/blob/main/generated_datasets/general_.png).
+
 ## Installation
 
 To get started, install the necessary dependencies:
