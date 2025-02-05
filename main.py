@@ -81,6 +81,9 @@ business_dataset, business_generator = generate_domain_dataset(
     num_queries=5
 )
 
+'''
+EITHER execute queries individually like this commented out section
+'''
 # for query, query_id in seed_queries:
 #     generator.add_seed_query(query, query_id)
 
