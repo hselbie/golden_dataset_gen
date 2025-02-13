@@ -52,7 +52,7 @@ class QueryGenerator:
         
     def generate_query(self, elements: Dict[str, List[str]]) -> Tuple[str, str]:
         """
-        Generate a new query and answer using the provided elements
+        Generate a new query and generate a full answer using the provided elements
         Returns tuple of (question, answer)
         """
         # Construct prompt using elements
@@ -86,7 +86,7 @@ Format the response as:
 Question: [generated question]
 Answer: [detailed answer]
 
-Make sure the question is natural and the answer is comprehensive."""
+Make sure the question is natural and the answer is comprehensive and directly related to the question."""
         
         return prompt
     

@@ -27,12 +27,10 @@ generator = GoldenDatasetGenerator(
 
 # Add seed queries
 seed_queries = [
-    ("My laptop charger stopped working. Can I expense a new charger?", "q1"),
-    ("Hello, are we able to expense our cell phone?", "q2"),
-    ("I lost/misplaced my receipt, how can I submit the expense?", "q3"),
-    ("I'm having an issue with hotel itemizations as a deposit was taken at time of booking. can someone help?", "q4"),
-    ("How do I submit corporate credit card transactions?", "q5"),
-    ("I can't find the mileage expense type", "q6")
+    ("What are some popular attractions to visit in Seattle?", "q1"),
+    ("What restaurants serve vegan food in Austin?", "q2"),
+    ("What would be a good teambuilding outdoor activity in Manhattan?", "q3"),
+    ("Where is the nearest local coffee shop to my hotel?", "q4")
 ]
 
 # Scientific Domain Queries
@@ -84,13 +82,13 @@ business_queries = [
 '''
 EITHER execute queries individually like this commented out section
 '''
-for query, query_id in scientific_queries:
+for query, query_id in seed_queries:
     generator.add_seed_query(query, query_id)
 
 visualizer = GraphVisualizer(graph=generator.graph_builder.graph, domain_name="general")
 visualizer.visualize()
 
 # Generate new dataset
-dataset = generator.generate_dataset(num_queries=5)
+dataset = generator.generate_dataset(num_queries=15)
 dataset.to_csv('generated_datasets/general_dataset.csv', index=False)
 print(dataset)
