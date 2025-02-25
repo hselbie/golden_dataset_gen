@@ -6,6 +6,8 @@ from knowledgegraph.builder import GraphVisualizer
 import random
 import vertexai
 import pandas as pd
+from config.variable_config import GroundingConfig
+from vertexai.preview.generative_models import GenerationConfig
 
 class GoldenDatasetGenerator:
     def __init__(self, project: str, location: str, llm_model: str, embedding_model: str):
@@ -31,6 +33,10 @@ class GoldenDatasetGenerator:
         
         self.generator = QueryGenerator(llm, embeddings)
         
+        self.grounding_config = GroundingConfig()
+        if self.grounding_config.grounding_enabled:
+            self.model, self.tool = self.grounding_config.initialize_grounding()
+    
     def add_seed_query(self, query: str, query_id: str):
         """
         Process a seed query and add its elements to the knowledge graph
@@ -71,6 +77,21 @@ class GoldenDatasetGenerator:
             df = pd.DataFrame(dataset)
             
         return df
+
+    def generate_response(self, prompt):
+        if self.grounding_config.grounding_enabled:
+            response = self.model.generate_content(
+                prompt,
+                tools=[self.tool],
+                generation_config=GenerationConfig(
+                    temperature=0.0,
+                ),
+            )
+        else:
+            # Your existing non-grounded response generation code
+            pass
+            
+        return response.text
 
 def generate_domain_dataset(generator, domain_queries, domain_name, num_queries=5):
     """
