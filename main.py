@@ -50,7 +50,7 @@ domains = {
 }
 
 
-def generate_domain_dataset(queries: List[Tuple[str, str]], domain_name: str, num_questions: int = 3):
+def generate_domain_dataset(queries: List[Tuple[str, str]], domain_name: str, num_questions: int = 15):
     """Generate dataset for a specific domain"""
     dataset = []
     
@@ -97,6 +97,7 @@ general_dataset = generate_domain_dataset(
     num_questions=15
 )
 general_dataset.to_csv('generated_datasets/general_dataset.csv', index=False)
+print('complete')
 
 # Visualize the results
 # for domain_name, dataset in datasets.items():

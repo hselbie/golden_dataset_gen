@@ -25,6 +25,7 @@ class VertexAIClient(VarConfig):
             vertexai.init(project=self.project, location=self.location)
             self._initialized = True
     
+
 class QueryAnalyzer:
     def __init__(self):
         # Load English language model
@@ -137,7 +138,7 @@ Make sure the questions are natural and diverse."""
         """Get answer from datastore using grounding"""
         vertexai.init(project=self.project, location=self.location)
 
-        model = GenerativeModel("gemini-1.5-flash-001")
+        model = GenerativeModel(self.llm)
 
         tool = Tool.from_retrieval(
             grounding.Retrieval(
@@ -161,15 +162,16 @@ Make sure the questions are natural and diverse."""
                 temperature=0.0,
             ),
         )
-
-
         return response.text
 
     def _get_google_search_answer(self, question: str) -> str:
         """Get answer using Google Search grounding"""
         # Get model from singleton to ensure proper initialization
         vertexai.init(project=self.project, location=self.location)
-        model = self.vertex_client.get_generative_model()
+        model = GenerativeModel("gemini-1.5-flash-001")
+
+        # model = GenerativeModel(self.llm)
+        
         
         tool = Tool.from_google_search_retrieval(
             grounding.GoogleSearchRetrieval(
@@ -181,9 +183,15 @@ Make sure the questions are natural and diverse."""
         response = model.generate_content(
             question,
             tools=[tool],
-            generation_config=GenerationConfig(temperature=0.0)
+            safety_settings={
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+                    },
+             generation_config=GenerationConfig(temperature=0.0)
         )
-        return response.text
+        return 
 
     def _get_llm_answer(self, question: str) -> str:
         """Get answer directly from LLM"""
