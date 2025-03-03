@@ -166,12 +166,8 @@ Make sure the questions are natural and diverse."""
 
     def _get_google_search_answer(self, question: str) -> str:
         """Get answer using Google Search grounding"""
-        # Get model from singleton to ensure proper initialization
         vertexai.init(project=self.project, location=self.location)
         model = GenerativeModel("gemini-1.5-flash-001")
-
-        # model = GenerativeModel(self.llm)
-        
         
         tool = Tool.from_google_search_retrieval(
             grounding.GoogleSearchRetrieval(
@@ -191,7 +187,8 @@ Make sure the questions are natural and diverse."""
                     },
              generation_config=GenerationConfig(temperature=0.0)
         )
-        return 
+        return response.text
+
 
     def _get_llm_answer(self, question: str) -> str:
         """Get answer directly from LLM"""

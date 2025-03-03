@@ -3,6 +3,7 @@ venv/
 venv*/
 env/
 ENV/
+old_files/*
 .env
 
 # Python
