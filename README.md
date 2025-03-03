@@ -18,51 +18,74 @@ Example knowledge graph can be seen [here](https://github.com/hselbie/golden_dat
 
 ## Installation
 
-To get started, install the necessary dependencies:
-
+1. Create and activate a virtual environment:
 ```bash
-pip install spacy networkx pandas langchain-google-vertexai matplotlib
+python -m venv venv
+source venv/bin/activate  # On Linux/Mac
+```
+
+2. Install the required dependencies:
+```bash
+pip install -r requirements.txt
 python -m spacy download en_core_web_sm
+```
+
+3. Configure environment variables:
+   Create a `.env` file in the root directory with the following variables:
+```plaintext
+GOOGLE_CLOUD_PROJECT=your-project-id
+VERTEX_LOCATION=your-location  # e.g., us-central1
+VERTEX_MODEL=text-bison@001
+EMBEDDING_MODEL=textembedding-gecko@001
+DATASTORE_ID=your-datastore-id  # Optional, for datastore integration
 ```
 
 ## Usage
 
-### Basic Execution
+### Setting Up Example Queries
 
-1.  **Define Seed Queries:** Create a list of seed queries, each represented as a tuple containing the question and a unique identifier.
+1. Create or modify `ExampleQueries.py` in the root directory:
+```python
+# filepath: ExampleQueries.py
+seed_queries = [
+    ("What are the key components of a SWOT analysis?", "bus1"),
+    ("How does supply chain optimization work?", "bus2"),
+    # Add more queries as (question, unique_id) tuples
+]
+```
 
-    ```python
-    # Example Seed Queries
-    seed_queries = [
-        ("What are the key components of a SWOT analysis?", "bus1"),
-        ("How does supply chain optimization work?", "bus2"),
-        ("Explain the concept of market segmentation.", "bus3"),
-        ("What are the principles of agile project management?", "bus4")
-    ]
-    ```
+### Basic Usage
 
-    *   The first element of the tuple is the query string.
-    *   The second element is a unique identifier for the query.
+Generate a dataset using the default settings:
+```bash
+python main.py
+```
 
-2.  **Add Seed Queries and Generate Dataset:** Iterate through the seed queries, add them to the generator, and then generate a new dataset.  The `generate_dataset` method takes the desired number of new queries as input.
+### Advanced Usage
 
-    ```python
-    from your_module import Generator, GraphVisualizer # Replace your_module
+Generate dataset with custom parameters:
+```bash
+python main.py \
+  --questions "What is Python?" "How does Git work?" \
+  --domain technology \
+  --num-questions 10 \
+  --output custom_datasets
+```
 
-    generator = Generator() # Initialize your generator class
+Available command-line arguments:
+- `--questions`: List of input questions to process
+- `--domain`: Domain name for the dataset (default: "general")
+- `--num-questions`: Number of questions to generate per input (default: 15)
+- `--output`: Output directory for generated datasets (default: "generated_datasets")
+- `--datastore-id`: Override the datastore ID from .env file
 
-    for query, query_id in seed_queries:
-        generator.add_seed_query(query, query_id)
+### Output
 
-    visualizer = GraphVisualizer(generator.graph_builder.graph)
-    visualizer.visualize()
+The tool generates:
+1. A CSV file containing the generated dataset
+2. A knowledge graph visualization (saved as PNG)
 
-    # Generate new dataset
-    dataset = generator.generate_dataset(num_queries=5)
-    print(dataset)
-    ```
-
-    The `dataset` object is returned as a pandas DataFrame.  You can export it to a CSV file using the pandas [`to_csv`](https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_csv.html) method.
+Generated files are stored in the `generated_datasets` directory (or custom output directory if specified).
 
 ## Advanced Usage: Domain-Specific Dataset Generation
 
