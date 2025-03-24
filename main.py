@@ -1,10 +1,30 @@
 import os
 import ExampleQueries 
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Union, Optional
 import pandas as pd
 from config.variable_config import VarConfig 
 from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
-from querygenerator.generator import QueryGenerator, QueryAnalyzer
+from querygenerator.generator import QueryGenerator, AnswerGenerator, QueryAnalyzer
+from dataclasses import dataclass
+from enum import Enum, auto
+
+class AnswerSource(Enum):
+    LLM = "llm"
+    DATASTORE = "datastore"
+    SEARCH = "google"
+    ALL = "all"
+    NONE = "none"
+
+class OutputFormat(Enum):
+    TEXT = "text"
+    DATAFRAME = "dataframe"
+    BOTH = "both"
+
+@dataclass
+class QueryConfig:
+    num_questions: int = 3
+    answer_source: AnswerSource = AnswerSource.LLM
+    generate_answers: bool = True
 
 # Create output directory if it doesn't exist
 os.makedirs('generated_datasets', exist_ok=True)
@@ -46,19 +66,144 @@ def initialize_generator():
     embeddings = VertexAIEmbeddings(model_name=global_variables.embedding_model)
     return QueryGenerator(llm=llm, embeddings=embeddings)
 
-if __name__ == "__main__":
-    # Generate general dataset
-    print("Generating general dataset...")
-    general_dataset = generate_domain_dataset(
-        queries=ExampleQueries.seed_queries,
-        domain_name="general",
-        num_questions=15
-    )
-    general_dataset.to_csv('generated_datasets/general_dataset.csv', index=False)
-    print('complete')
+def process_queries(queries: List[Tuple[str, str]], config: QueryConfig):
+    """Process multiple queries with configurable options"""
+    llm = ChatVertexAI(model_name=global_variables.llm)
+    embeddings = VertexAIEmbeddings(model_name=global_variables.embedding_model)
+    
+    query_generator = QueryGenerator(llm, embeddings)
+    answer_generator = AnswerGenerator(llm)
+    query_analyzer = QueryAnalyzer()
+    
+    results = []
+    
+    for query, query_id in queries:
+        print(f"\nProcessing query: {query}")
+        
+        # Extract elements
+        elements = query_analyzer.extract_elements(query)
+        
+        # Generate questions
+        questions = query_generator.generate_questions(elements, num_questions=config.num_questions)
+        
+        result = {
+            'query_id': query_id,
+            'original_query': query,
+            'generated_questions': questions,
+            'qa_pairs': []
+        }
 
-    # Visualize the results
-    # for domain_name, dataset in datasets.items():
-    #     print(f"\n{domain_name.capitalize()} Dataset Summary:")
-    #     print(f"Total questions generated: {len(dataset)}")
-    #     print(dataset[['query_id', 'generated_question']].head())
+        # Generate answers if requested
+        if config.generate_answers:
+            if config.answer_source == AnswerSource.ALL:
+                # Generate answers from all sources
+                qa_pairs_llm = answer_generator.generate_answers(questions, source="llm")
+                qa_pairs_ds = answer_generator.generate_answers(questions, source="datastore")
+                qa_pairs_search = answer_generator.generate_answers(questions, source="google")
+                
+                result['qa_pairs'] = {
+                    'llm': qa_pairs_llm,
+                    'datastore': qa_pairs_ds,
+                    'search': qa_pairs_search
+                }
+            else:
+                # Generate answers from specific source
+                qa_pairs = answer_generator.generate_answers(questions, source=config.answer_source.value)
+                result['qa_pairs'] = {config.answer_source.value: qa_pairs}
+        
+        results.append(result)
+    
+    return results
+
+def main(
+    queries: List[Tuple[str, str]], 
+    config: QueryConfig, 
+    output_format: OutputFormat = OutputFormat.BOTH,
+    save_csv: bool = True
+) -> Union[pd.DataFrame, None]:
+    """
+    Process queries with given configuration and return results in specified format
+    
+    Args:
+        queries: List of (query, query_id) tuples
+        config: QueryConfig object with processing parameters
+        output_format: OutputFormat enum specifying desired output format
+        save_csv: Whether to save results to CSV file
+    
+    Returns:
+        pd.DataFrame if output_format is DATAFRAME or BOTH, None otherwise
+    """
+    results = process_queries(queries, config)
+    
+    # Text output
+    if output_format in [OutputFormat.TEXT, OutputFormat.BOTH]:
+        for result in results:
+            print(f"\nOriginal Query ({result['query_id']}): {result['original_query']}")
+            print("-" * 50)
+            print("\nGenerated Questions:")
+            for q in result['generated_questions']:
+                print(f"- {q}")
+                
+            if result['qa_pairs']:
+                print("\nAnswers:")
+                for source, qa_pairs in result['qa_pairs'].items():
+                    print(f"\n{source.upper()} Answers:")
+                    for q, a in qa_pairs:
+                        print(f"Q: {q}")
+                        print(f"A: {a}\n")
+    
+    # DataFrame output
+    if output_format in [OutputFormat.DATAFRAME, OutputFormat.BOTH]:
+        rows = []
+        for result in results:
+            for q in result['generated_questions']:
+                row = {
+                    'query_id': result['query_id'],
+                    'original_query': result['original_query'],
+                    'generated_question': q
+                }
+                
+                if result['qa_pairs']:
+                    for source, qa_pairs in result['qa_pairs'].items():
+                        for quest, ans in qa_pairs:
+                            if quest == q:
+                                row[f'{source}_answer'] = ans
+                
+                rows.append(row)
+        
+        df = pd.DataFrame(rows)
+        
+        if save_csv:
+            output_path = 'generated_datasets/query_results.csv'
+            df.to_csv(output_path, index=False)
+            print(f"\nResults saved to {output_path}")
+        
+        return df
+    
+    return None
+
+if __name__ == "__main__":
+    # Example queries
+    sample_queries = [
+        ("What are popular attractions in Seattle?", "q1"),
+        ("What restaurants serve vegan food in Austin?", "q2"),
+        ("What would be a good teambuilding outdoor activity in Manhattan?", "q3")
+    ]
+    
+    # Example configurations
+    questions_only = QueryConfig(
+        num_questions=5,
+        generate_answers=False
+    )
+    
+    # Example usage with different output formats
+    # Text output only
+    # main(sample_queries, questions_only, output_format=OutputFormat.TEXT)
+    
+    # DataFrame output only
+    df = main(sample_queries, questions_only, output_format=OutputFormat.DATAFRAME)
+    print(df.head())
+    print(df.describe())
+    
+    # # Both outputs
+    # df = main(sample_queries, questions_only, output_format=OutputFormat.BOTH)

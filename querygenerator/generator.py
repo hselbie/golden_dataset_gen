@@ -1,5 +1,4 @@
-from langchain_google_vertexai import ChatVertexAI
-from langchain_google_vertexai import VertexAIEmbeddings
+from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
 from typing import List, Dict, Tuple, Optional
 import spacy
 from vertexai.preview.generative_models import (
@@ -74,40 +73,15 @@ class QueryGenerator(VarConfig):
         self.llm = llm
         self.embeddings = embeddings
         self.analyzer = TextAnalyzer(embeddings)
-        self.vertex_client = VertexAIClient()
         
-
     def generate_questions(self, elements: Dict[str, List[str]], num_questions: int = 5) -> List[str]:
-        """
-        Generate specified number of questions from the elements
-        
-        Args:
-            elements: Dictionary of elements to use for question generation
-            num_questions: Number of questions to generate (default: 5)
-        
-        Returns:
-            List of generated questions
-        """
+        """Generate specified number of questions from the elements"""
         prompt = self._construct_question_prompt(elements, num_questions)
         response = self.llm.invoke(prompt)
         return self._parse_questions(response.content)
 
-    def generate_answers(self, questions: List[str], source: str = "llm") -> List[Tuple[str, str]]:
-        """Generate answers for questions using specified source"""
-        qa_pairs = []
-        for question in questions:
-            answer = self._get_answer(question, source)
-            qa_pairs.append((question, answer))
-        return qa_pairs
-
     def _construct_question_prompt(self, elements: Dict[str, List[str]], num_questions: int) -> str:
-        """
-        Construct prompt for question generation
-        
-        Args:
-            elements: Dictionary of elements to use for question generation
-            num_questions: Number of questions to generate
-        """
+        """Construct prompt for question generation"""
         prompt = f"Generate {num_questions} natural questions using some or all of these elements:\n\n"
         
         for element_type, items in elements.items():
@@ -124,6 +98,29 @@ Format each question on a new line starting with 'Question: '
 Make sure the questions are natural and diverse."""
         
         return prompt
+
+    def _parse_questions(self, response: str) -> List[str]:
+        """Parse response to extract questions"""
+        questions = []
+        for line in response.split('\n'):
+            if line.strip().startswith("Question: "):
+                questions.append(line.replace("Question: ", "").strip())
+        return questions
+
+
+class AnswerGenerator(VarConfig):
+    def __init__(self, llm: ChatVertexAI):
+        super().__init__()
+        self.llm = llm
+        self.vertex_client = VertexAIClient()
+
+    def generate_answers(self, questions: List[str], source: str = "llm") -> List[Tuple[str, str]]:
+        """Generate answers for questions using specified source"""
+        qa_pairs = []
+        for question in questions:
+            answer = self._get_answer(question, source)
+            qa_pairs.append((question, answer))
+        return qa_pairs
 
     def _get_answer(self, question: str, source: str) -> str:
         """Get answer from specified source"""
@@ -195,11 +192,3 @@ Make sure the questions are natural and diverse."""
         prompt = f"Please provide a detailed and accurate answer to this question:\n{question}"
         response = self.llm.invoke(prompt)
         return response.content
-
-    def _parse_questions(self, response: str) -> List[str]:
-        """Parse response to extract questions"""
-        questions = []
-        for line in response.split('\n'):
-            if line.strip().startswith("Question: "):
-                questions.append(line.replace("Question: ", "").strip())
-        return questions
