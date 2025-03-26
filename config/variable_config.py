@@ -1,13 +1,6 @@
 from dotenv import load_dotenv
 import os
-import vertexai
-from vertexai.preview.generative_models import (
-    GenerationConfig,
-    GenerativeModel,
-    Tool,
-    grounding,
-)
-
+from google import genai
 class VarConfig:
     def __init__(self):
         load_dotenv()
@@ -17,6 +10,9 @@ class VarConfig:
         self.llm = os.getenv("LLM")
         self.datastore_id = os.getenv("DATASTORE_ID")
         self.grounding_enabled = int(os.getenv("GROUNDING", 0))
+        self.google_api_key_ = os.getenv("GAPIKEY")
+        self.client = genai.Client(vertexai=True, project=self.project, location=self.location)
+
 
 #%%        
 # import vertexai

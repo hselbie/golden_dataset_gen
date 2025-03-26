@@ -1,4 +1,4 @@
-from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from typing import List, Dict, Tuple, Optional
 import spacy
 from vertexai.preview.generative_models import (
@@ -68,12 +68,12 @@ class QueryAnalyzer:
         return elements
 
 class QueryGenerator(VarConfig):
-    def __init__(self, llm: ChatVertexAI, embeddings: VertexAIEmbeddings):
+    def __init__(self, llm: ChatGoogleGenerativeAI, embeddings: GoogleGenerativeAIEmbeddings):
         super().__init__()
         self.llm = llm
         self.embeddings = embeddings
         self.analyzer = TextAnalyzer(embeddings)
-        
+
     def generate_questions(self, elements: Dict[str, List[str]], num_questions: int = 5) -> List[str]:
         """Generate specified number of questions from the elements"""
         prompt = self._construct_question_prompt(elements, num_questions)
@@ -83,7 +83,7 @@ class QueryGenerator(VarConfig):
     def _construct_question_prompt(self, elements: Dict[str, List[str]], num_questions: int) -> str:
         """Construct prompt for question generation"""
         prompt = f"Generate {num_questions} natural questions using some or all of these elements:\n\n"
-        
+
         for element_type, items in elements.items():
             prompt += f"{element_type}:\n"
             for item in items:
@@ -92,11 +92,11 @@ class QueryGenerator(VarConfig):
                 else:
                     prompt += f"- {item}\n"
             prompt += "\n"
-            
+
         prompt += """
 Format each question on a new line starting with 'Question: '
 Make sure the questions are natural and diverse."""
-        
+
         return prompt
 
     def _parse_questions(self, response: str) -> List[str]:
@@ -107,9 +107,8 @@ Make sure the questions are natural and diverse."""
                 questions.append(line.replace("Question: ", "").strip())
         return questions
 
-
 class AnswerGenerator(VarConfig):
-    def __init__(self, llm: ChatVertexAI):
+    def __init__(self, llm: ChatGoogleGenerativeAI):
         super().__init__()
         self.llm = llm
         self.vertex_client = VertexAIClient()
@@ -133,57 +132,38 @@ class AnswerGenerator(VarConfig):
 
     def _get_datastore_answer(self, question: str) -> str:
         """Get answer from datastore using grounding"""
-        vertexai.init(project=self.project, location=self.location)
 
-        model = GenerativeModel(self.llm)
+        datastore_path = f"projects/{config.project}/locations/global/collections/default_collection/dataStores/{config.datastore_id}"
 
-        tool = Tool.from_retrieval(
-            grounding.Retrieval(
-                grounding.VertexAISearch(
-                    datastore=self.datastore_id,
-                    project=self.project,
-                    location="global",
+        # Create the Vertex AI Search tool
+        vais_tool = Tool(
+            retrieval=Retrieval(
+                vertex_ai_search=VertexAISearch(
+                    datastore=datastore_path
                 )
             )
         )
-        response = model.generate_content(
-            question,
-            tools=[tool],
-            safety_settings={
-                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-                    },
-            generation_config=GenerationConfig(
-                temperature=0.0,
-            ),
+
+        # Generate content with the tool in the proper config format
+        response = client.models.generate_content(
+            model=config.llm,
+            contents=question,
+            config=GenerateContentConfig(
+                tools=[vais_tool]  # Tools are passed directly in the config
+            )
         )
+
         return response.text
 
     def _get_google_search_answer(self, question: str) -> str:
         """Get answer using Google Search grounding"""
         vertexai.init(project=self.project, location=self.location)
-        model = GenerativeModel("gemini-1.5-flash-001")
-        
-        tool = Tool.from_google_search_retrieval(
-            grounding.GoogleSearchRetrieval(
-                dynamic_retrieval_config=grounding.DynamicRetrievalConfig(
-                    dynamic_threshold=0.7,
-                )
-            )
-        )
-        response = model.generate_content(
-            question,
-            tools=[tool],
-            safety_settings={
-                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-                    },
-             generation_config=GenerationConfig(temperature=0.0)
-        )
+
+        google_search_tool = Tool(google_search=GoogleSearch())
+        response = client.models.generate_content(
+            model=config.llm,
+            contents=question,
+            config=GenerateContentConfig(tools=[google_search_tool]))
         return response.text
 
 

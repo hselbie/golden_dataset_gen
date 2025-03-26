@@ -3,7 +3,7 @@ import ExampleQueries
 from typing import List, Dict, Tuple, Union, Optional
 import pandas as pd
 from config.variable_config import VarConfig 
-from langchain_google_vertexai import ChatVertexAI, VertexAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from querygenerator.generator import QueryGenerator, AnswerGenerator, QueryAnalyzer
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -62,30 +62,30 @@ def generate_domain_dataset(queries: List[Tuple[str, str]], domain_name: str, nu
 
 def initialize_generator():
     """Initialize the query generator with required components"""
-    llm = ChatVertexAI(model_name=global_variables.llm)
-    embeddings = VertexAIEmbeddings(model_name=global_variables.embedding_model)
+    llm = ChatGoogleGenerativeAI(model_name=global_variables.llm)
+    embeddings = GoogleGenerativeAIEmbeddings(model_name=global_variables.embedding_model)
     return QueryGenerator(llm=llm, embeddings=embeddings)
 
-def process_queries(queries: List[Tuple[str, str]], config: QueryConfig):
+def process_queries(queries: List[Tuple[str, str]], qconfig: QueryConfig):
     """Process multiple queries with configurable options"""
-    llm = ChatVertexAI(model_name=global_variables.llm)
-    embeddings = VertexAIEmbeddings(model_name=global_variables.embedding_model)
-    
+    llm = ChatGoogleGenerativeAI(model=global_variables.llm, google_api_key=global_variables.google_api_key_)
+    embeddings = GoogleGenerativeAIEmbeddings(model=global_variables.embedding_model)
+
     query_generator = QueryGenerator(llm, embeddings)
     answer_generator = AnswerGenerator(llm)
     query_analyzer = QueryAnalyzer()
-    
+
     results = []
-    
+
     for query, query_id in queries:
         print(f"\nProcessing query: {query}")
-        
+
         # Extract elements
         elements = query_analyzer.extract_elements(query)
-        
+
         # Generate questions
-        questions = query_generator.generate_questions(elements, num_questions=config.num_questions)
-        
+        questions = query_generator.generate_questions(elements, num_questions=qconfig.num_questions)
+
         result = {
             'query_id': query_id,
             'original_query': query,
@@ -94,13 +94,13 @@ def process_queries(queries: List[Tuple[str, str]], config: QueryConfig):
         }
 
         # Generate answers if requested
-        if config.generate_answers:
-            if config.answer_source == AnswerSource.ALL:
+        if qconfig.generate_answers:
+            if qconfig.answer_source == AnswerSource.ALL:
                 # Generate answers from all sources
                 qa_pairs_llm = answer_generator.generate_answers(questions, source="llm")
                 qa_pairs_ds = answer_generator.generate_answers(questions, source="datastore")
                 qa_pairs_search = answer_generator.generate_answers(questions, source="google")
-                
+
                 result['qa_pairs'] = {
                     'llm': qa_pairs_llm,
                     'datastore': qa_pairs_ds,
@@ -108,11 +108,11 @@ def process_queries(queries: List[Tuple[str, str]], config: QueryConfig):
                 }
             else:
                 # Generate answers from specific source
-                qa_pairs = answer_generator.generate_answers(questions, source=config.answer_source.value)
-                result['qa_pairs'] = {config.answer_source.value: qa_pairs}
-        
+                qa_pairs = answer_generator.generate_answers(questions, source=qconfig.answer_source.value)
+                result['qa_pairs'] = {qconfig.answer_source.value: qa_pairs}
+
         results.append(result)
-    
+
     return results
 
 def main(
@@ -135,7 +135,7 @@ def main(
     """
     results = process_queries(queries, config)
     
-    # Text output
+    # Text output handling
     if output_format in [OutputFormat.TEXT, OutputFormat.BOTH]:
         for result in results:
             print(f"\nOriginal Query ({result['query_id']}): {result['original_query']}")
@@ -154,15 +154,30 @@ def main(
     
     # DataFrame output
     if output_format in [OutputFormat.DATAFRAME, OutputFormat.BOTH]:
+        # Initialize list to store all unique answer sources
+        answer_sources = set()
         rows = []
+        
+        # First pass: collect all possible answer sources
+        for result in results:
+            if result['qa_pairs']:
+                answer_sources.update(result['qa_pairs'].keys())
+        
+        # Second pass: create rows with dynamic columns
         for result in results:
             for q in result['generated_questions']:
+                # Base row with question info
                 row = {
                     'query_id': result['query_id'],
                     'original_query': result['original_query'],
                     'generated_question': q
                 }
                 
+                # Initialize all possible answer columns as None
+                for source in answer_sources:
+                    row[f'{source}_answer'] = None
+                
+                # Fill in available answers
                 if result['qa_pairs']:
                     for source, qa_pairs in result['qa_pairs'].items():
                         for quest, ans in qa_pairs:
@@ -173,10 +188,20 @@ def main(
         
         df = pd.DataFrame(rows)
         
+        # Reorder columns to group related information
+        base_cols = ['query_id', 'original_query', 'generated_question']
+        answer_cols = [col for col in df.columns if col.endswith('_answer')]
+        df = df[base_cols + sorted(answer_cols)]
+        
         if save_csv:
             output_path = 'generated_datasets/query_results.csv'
             df.to_csv(output_path, index=False)
             print(f"\nResults saved to {output_path}")
+            
+            # Print summary of available answer sources
+            print("\nAnswer sources in dataset:")
+            for source in sorted(answer_sources):
+                print(f"- {source}")
         
         return df
     
