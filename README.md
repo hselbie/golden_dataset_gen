@@ -20,14 +20,16 @@ Example knowledge graph can be seen [here](https://github.com/hselbie/golden_dat
 
 1. Create and activate a virtual environment:
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Linux/Mac
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Sync dependencies
+uv sync
 ```
 
-2. Install the required dependencies:
+2. Download the required spaCy model:
 ```bash
-pip install -r requirements.txt
-python -m spacy download en_core_web_sm
+uv run python -m spacy download en_core_web_sm
 ```
 
 3. Configure environment variables:
@@ -58,14 +60,14 @@ seed_queries = [
 
 Generate a dataset using the default settings:
 ```bash
-python main.py
+uv run python main.py
 ```
 
 ### Advanced Usage
 
 Generate dataset with custom parameters:
 ```bash
-python main.py \
+uv run python main.py \
   --questions "What is Python?" "How does Git work?" \
   --domain technology \
   --num-questions 10 \
@@ -87,53 +89,18 @@ The tool generates:
 
 Generated files are stored in the `generated_datasets` directory (or custom output directory if specified).
 
-## Advanced Usage: Domain-Specific Dataset Generation
+## Project Structure
 
-The `ds_generator` module provides a function for generating domain-specific datasets. To use this feature, prepare seed datasets for each domain you want to target.
+For a detailed breakdown of the project structure, see [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md).
 
-1.  **Create Domain-Specific Seed Queries:**  Define seed query lists for each domain.
+## Testing
 
-    ```python
-    # Scientific Domain Queries
-    scientific_queries = [
-        ("What is the role of mitochondria in cellular respiration?", "sci1"),
-        ("How does quantum entanglement work in physics?", "sci2"),
-        ("Explain the process of DNA replication.", "sci3"),
-        ("What are the laws of thermodynamics?", "sci4")
-    ]
+To run the comprehensive test suite:
 
-    # Technology Domain Queries
-    tech_queries = [
-        ("How do microprocessors handle parallel processing?", "tech1"),
-        ("What are the principles of cloud computing architecture?", "tech2"),
-        ("Explain how blockchain maintains data integrity.", "tech3"),
-        ("What is the difference between HTTP and HTTPS?", "tech4")
-    ]
+```bash
+./run_tests.sh
+```
 
-    # Business Domain Queries
-    business_queries = [
-        ("What are the key components of a SWOT analysis?", "bus1"),
-        ("How does supply chain optimization work?", "bus2"),
-        ("Explain the concept of market segmentation.", "bus3"),
-        ("What are the principles of agile project management?", "bus4")
-    ]
-    ```
+For more options (unit tests, coverage, etc.), refer to [docs/SETUP.md](docs/SETUP.md).
 
-2.  **Generate Domain Datasets:** Call the `generate_domain_dataset` function for each domain.
-
-    ```python
-    from your_module import generate_domain_dataset, Generator # Replace your_module
-
-    generator = Generator() # Initialize your generator class
-
-
-    scientific_dataset = generate_domain_dataset(
-        generator=generator,
-        domain_queries=scientific_queries,
-        domain_name="scientific",
-        num_queries=5,
-    )
-    ```
-
-    This will generate a dataset specific to the "scientific" domain, named "scientific_dataset".
 

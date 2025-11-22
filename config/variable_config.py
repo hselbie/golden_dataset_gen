@@ -1,67 +1,80 @@
-from dotenv import load_dotenv
 import os
-import vertexai
-from vertexai.preview.generative_models import (
-    GenerationConfig,
-    GenerativeModel,
-    Tool,
-    grounding,
-)
+import logging
+from dotenv import load_dotenv
+from google import genai
+
+logger = logging.getLogger(__name__)
+
 
 class VarConfig:
+    """Configuration class for environment variables and API clients."""
+
     def __init__(self):
         load_dotenv()
+        logger.info("Loading configuration from environment variables")
+
         self.project = os.getenv("PROJECT")
         self.embedding_model = os.getenv("EMBEDDING_MODEL")
         self.location = os.getenv("LOCATION")
         self.llm = os.getenv("LLM")
         self.datastore_id = os.getenv("DATASTORE_ID")
         self.grounding_enabled = int(os.getenv("GROUNDING", 0))
+        self.google_api_key_ = os.getenv("GAPIKEY")
 
-#%%        
-# import vertexai
+        if not self.project or not self.location:
+            logger.warning("PROJECT or LOCATION not set in environment variables")
 
-# from vertexai.preview.generative_models import (
-#     GenerationConfig,
-#     GenerativeModel,
-#     Tool,
-#     grounding,
-#     HarmCategory,
-#     HarmBlockThreshold
-# )
+        try:
+            self.client = genai.Client(
+                vertexai=True, project=self.project, location=self.location
+            )
+            logger.info(f"Initialized genai client for project: {self.project}")
+        except Exception as e:
+            logger.error(f"Failed to initialize genai client: {e}")
+            raise
 
-# # TODO(developer): Update and un-comment below lines
-# PROJECT_ID = "zinc-forge-302418"
-# data_store_id = "google-store_1719441609798"
 
-# vertexai.init(project=PROJECT_ID, location="us-central1")
+class GroundingConfig(VarConfig):
+    """Configuration for grounding with Vertex AI Search."""
 
-# model = GenerativeModel("gemini-1.5-flash-001")
+    def __init__(self):
+        super().__init__()
+        logger.info("Initializing GroundingConfig")
 
-# tool = Tool.from_retrieval(
-#     grounding.Retrieval(
-#         grounding.VertexAISearch(
-#             datastore=data_store_id,
-#             project=PROJECT_ID,
-#             location="global",
-#         )
-#     )
-# )
+    def initialize_grounding(self):
+        """
+        Initialize grounding tools for Vertex AI.
 
-# prompt = "How do I make an appointment to renew my driver's license?"
-# response = model.generate_content(
-#     prompt,
-#     tools=[tool],
-#     safety_settings={
-#         HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-#         HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-#         HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-#         HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-#             },
-#     generation_config=GenerationConfig(
-#         temperature=0.0,
-#     ),
-# )
+        Returns:
+            Tuple of (model, tool) for grounded content generation
+        """
+        if not self.grounding_enabled:
+            logger.warning("Grounding is not enabled")
+            return None, None
 
-# print(response.text)
-# # %%
+        try:
+            from vertexai.preview.generative_models import (
+                GenerativeModel,
+                Tool,
+                grounding,
+            )
+
+            logger.info(f"Initializing grounding with datastore: {self.datastore_id}")
+
+            model = GenerativeModel(self.llm)
+
+            tool = Tool.from_retrieval(
+                grounding.Retrieval(
+                    grounding.VertexAISearch(
+                        datastore=self.datastore_id,
+                        project=self.project,
+                        location="global",
+                    )
+                )
+            )
+
+            logger.info("Grounding initialized successfully")
+            return model, tool
+        except Exception as e:
+            logger.error(f"Failed to initialize grounding: {e}")
+            raise
